@@ -69,6 +69,29 @@ func TestError(t *testing.T) {
 				{"field2", "value2"},
 			},
 		},
+	}, {
+		"custom",
+		func() error {
+			return NewApplication("CODE").
+				AddContext("Prop1", "Value1").
+				AddField("field1", "value1").
+				SetContext(map[string]interface{}{
+					"Prop3": []int{5, 6},
+				}).
+				AddFields([]Field{{"field2", "value2"}})
+		},
+		&Error{
+			Type: APPLICATION,
+			Code: "CODE",
+			Context: map[string]interface{}{
+				"Prop1": "Value1",
+				"Prop3": []int{5, 6},
+			},
+			Fields: []Field{
+				{"field1", "value1"},
+				{"field2", "value2"},
+			},
+		},
 	}}
 
 	for _, test := range tests {

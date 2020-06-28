@@ -13,18 +13,19 @@ const (
 )
 
 type Field struct {
-	Field string
-	Value string
+	Field string      `json:"field"`
+	Value interface{} `json:"value"`
 }
 
 type Error struct {
 	Type    ErrorType `json:"type"`
 	Code    string    `json:"code"`
+	Path    string    `json:"path"`
 	Status  int       `json:"status"`
 	Message string    `json:"message"`
+	Cause   error     `json:"cause"`
 	Context map[string]interface{}
 	Fields  []Field
-	Cause   error
 }
 
 func New(t ErrorType, c string) *Error {
@@ -32,7 +33,17 @@ func New(t ErrorType, c string) *Error {
 		Type:    t,
 		Code:    c,
 		Context: make(map[string]interface{}),
+		Fields:  make([]Field, 0),
 	}
+}
+
+func NewApplication(c string) *Error {
+	return New(APPLICATION, c)
+}
+
+func (e *Error) SetPath(path string) *Error {
+	e.Path = path
+	return e
 }
 
 func (e *Error) SetStatus(status int) *Error {
@@ -45,10 +56,20 @@ func (e *Error) SetMessage(msg string, args ...interface{}) *Error {
 	return e
 }
 
+func (e *Error) SetCause(cause error) *Error {
+	e.Cause = cause
+	return e
+}
+
 func (e *Error) SetContext(context map[string]interface{}) *Error {
 	for k, v := range context {
 		e.Context[k] = v
 	}
+	return e
+}
+
+func (e *Error) AddContext(k string, v interface{}) *Error {
+	e.Context[k] = v
 	return e
 }
 
@@ -59,8 +80,8 @@ func (e *Error) AddFields(fields []Field) *Error {
 	return e
 }
 
-func (e *Error) SetCause(cause error) *Error {
-	e.Cause = cause
+func (e *Error) AddField(f string, v interface{}) *Error {
+	e.Fields = append(e.Fields, Field{f, v})
 	return e
 }
 
