@@ -1,11 +1,8 @@
 package auth
 
 import (
-	"time"
-
 	"omics/pkg/models"
-
-	"github.com/google/uuid"
+	"time"
 )
 
 type Permission struct {
@@ -63,35 +60,4 @@ func (u *User) Validate() {
 
 func (u *User) Login() {
 	u.LastLogin = time.Now()
-}
-
-type Token struct {
-	ID   string
-	User *User
-}
-
-func NewToken() *Token {
-	return &Token{
-		ID: uuid.New().String(),
-	}
-}
-
-func (t *Token) Encode(enc Encoder) (string, error) {
-	token, err := enc.Encode(t.ID)
-	if err != nil {
-		return "", ErrNull
-	}
-
-	return token, nil
-}
-
-func DecodeToken(enc Encoder, tokenStr string) (*Token, error) {
-	tokenID, err := enc.Decode(tokenStr)
-	if err != nil {
-		return nil, ErrNull
-	}
-
-	return &Token{
-		ID: tokenID,
-	}, nil
 }

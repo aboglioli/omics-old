@@ -23,10 +23,6 @@ func (req *RegisterRequest) Validate() error {
 	return nil
 }
 
-type RegisterResponse struct {
-	Registered bool `json:"registered"`
-}
-
 type ChangePasswordRequest struct {
 	UserID      models.ID `json:"user_id"`
 	OldPassword string    `json:"old_password"`
@@ -37,15 +33,7 @@ func (req *ChangePasswordRequest) Validate() error {
 	return nil
 }
 
-type ChangePasswordResponse struct {
-	PasswordChanged bool `json:"password_changed"`
-}
-
 type ValidateRequest struct {
 	UserID models.ID `json:"user_id"`
 	Code   string    `json:"code"`
-}
-
-type ValidateResponse struct {
-	Validated bool `json:"validated"`
 }

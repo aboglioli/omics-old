@@ -8,11 +8,11 @@ import (
 )
 
 type Service interface {
-	Register(ctx context.Context, req *RegisterRequest) (*RegisterResponse, error)
+	Register(ctx context.Context, req *RegisterRequest) error
 	Login(ctx context.Context, req *LoginRequest) (*LoginResponse, error)
-	ChangePassword(ctx context.Context, req *ChangePasswordRequest) (*ChangePasswordResponse, error)
+	ChangePassword(ctx context.Context, req *ChangePasswordRequest) error
 	Logout(ctx context.Context) error
-	Validate(ctx context.Context, req *ValidateRequest) (*ValidateResponse, error)
+	Validate(ctx context.Context, req *ValidateRequest) error
 }
 
 type service struct {
@@ -21,6 +21,7 @@ type service struct {
 	roleRepo        roles.Repository
 	passwordCrypter auth.PasswordCrypter
 	tokenEncoder    auth.Encoder
+	authServ        auth.Service
 }
 
 func NewService(
@@ -29,6 +30,7 @@ func NewService(
 	roleRepo roles.Repository,
 	passwordCrypter auth.PasswordCrypter,
 	tokenEncoder auth.Encoder,
+	authServ auth.Service,
 ) Service {
 	return &service{
 		userRepo:        userRepo,
@@ -36,17 +38,18 @@ func NewService(
 		roleRepo:        roleRepo,
 		passwordCrypter: passwordCrypter,
 		tokenEncoder:    tokenEncoder,
+		authServ:        authServ,
 	}
 }
 
-func (s *service) Register(ctx context.Context, req *RegisterRequest) (*RegisterResponse, error) {
+func (s *service) Register(ctx context.Context, req *RegisterRequest) error {
 	if err := req.Validate(); err != nil {
-		return nil, ErrNull
+		return ErrNull
 	}
 
 	if user, err := s.userRepo.FindByUsername(ctx, req.Username); user != nil || err == nil {
 		if user, err := s.userRepo.FindByEmail(ctx, req.Email); user != nil || err == nil {
-			return nil, ErrNull
+			return ErrNull
 		}
 	}
 
@@ -55,7 +58,7 @@ func (s *service) Register(ctx context.Context, req *RegisterRequest) (*Register
 
 	role, err := s.roleRepo.FindByCode(ctx, "user")
 	if err != nil {
-		return nil, ErrNull
+		return ErrNull
 	}
 
 	permissions := make([]auth.Permission, 0)
@@ -72,12 +75,10 @@ func (s *service) Register(ctx context.Context, req *RegisterRequest) (*Register
 	}
 
 	if err := s.userRepo.Save(ctx, authUser); err != nil {
-		return nil, ErrNull
+		return ErrNull
 	}
 
-	return &RegisterResponse{
-		Registered: true,
-	}, nil
+	return nil
 }
 
 func (s *service) Login(ctx context.Context, req *LoginRequest) (*LoginResponse, error) {
@@ -110,32 +111,25 @@ func (s *service) Login(ctx context.Context, req *LoginRequest) (*LoginResponse,
 	}, nil
 }
 
-func (s *service) ChangePassword(ctx context.Context, req *ChangePasswordRequest) (*ChangePasswordResponse, error) {
+func (s *service) ChangePassword(ctx context.Context, req *ChangePasswordRequest) error {
 	user, err := s.userRepo.FindByID(ctx, req.UserID)
 	if err != nil {
-		return nil, ErrNull
-	}
-
-	if err := user.ChangePassword(s.passwordCrypter, req.OldPassword, req.NewPassword); err != nil {
-		return nil, ErrNull
-	}
-
-	if err := s.userRepo.Save(ctx, user); err != nil {
-		return nil, ErrNull
-	}
-
-	return &ChangePasswordResponse{
-		PasswordChanged: true,
-	}, nil
-}
-
-func (s *service) Logout(ctx context.Context) error {
-	tokenStr, ok := ctx.Value("authToken").(string)
-	if !ok {
 		return ErrNull
 	}
 
-	token, err := auth.DecodeToken(s.tokenEncoder, tokenStr)
+	if err := user.ChangePassword(s.passwordCrypter, req.OldPassword, req.NewPassword); err != nil {
+		return ErrNull
+	}
+
+	if err := s.userRepo.Save(ctx, user); err != nil {
+		return ErrNull
+	}
+
+	return nil
+}
+
+func (s *service) Logout(ctx context.Context) error {
+	token, err := s.authServ.GetToken(ctx)
 	if err != nil {
 		return ErrNull
 	}
@@ -147,18 +141,18 @@ func (s *service) Logout(ctx context.Context) error {
 	return nil
 }
 
-func (s *service) Validate(ctx context.Context, req *ValidateRequest) (*ValidateResponse, error) {
+func (s *service) Validate(ctx context.Context, req *ValidateRequest) error {
 	user, err := s.userRepo.FindByID(ctx, req.UserID)
 	if err != nil {
-		return nil, ErrNull
+		return ErrNull
 	}
 
 	// TODO: validate code
 	user.Validate()
 
 	if err := s.userRepo.Save(ctx, user); err != nil {
-		return nil, ErrNull
+		return ErrNull
 	}
 
-	return nil, nil
+	return nil
 }
