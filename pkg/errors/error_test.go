@@ -19,6 +19,7 @@ func TestError(t *testing.T) {
 			Type:    INTERNAL,
 			Code:    "CODE",
 			Context: make(map[string]interface{}),
+			Fields:  make([]Field, 0),
 		},
 	}, {
 		"set status",
@@ -30,6 +31,7 @@ func TestError(t *testing.T) {
 			Code:    "CODE",
 			Status:  401,
 			Context: make(map[string]interface{}),
+			Fields:  make([]Field, 0),
 		},
 	}, {
 		"set message",
@@ -41,6 +43,7 @@ func TestError(t *testing.T) {
 			Code:    "CODE",
 			Message: "1;1.20;Hi",
 			Context: make(map[string]interface{}),
+			Fields:  make([]Field, 0),
 		},
 	}, {
 		"context and fields",
@@ -98,7 +101,7 @@ func TestError(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			err := test.create()
 			if !reflect.DeepEqual(err, test.expected) {
-				t.Errorf("%s\n-e: %v\n-a: %v", test.name, test.expected, err)
+				t.Errorf("%s\n[EXP]: %v\n[ACT]: %v", test.name, test.expected, err)
 			}
 		})
 	}
